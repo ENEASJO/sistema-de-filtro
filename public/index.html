@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Filtro - Validación de RUCs</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔍 Sistema de Filtro</h1>
+            <p class="subtitle">Validación de RUCs y Detección de Familiares</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="individual">RUC Individual</button>
+            <button class="tab-btn" data-tab="batch">Búsqueda Masiva</button>
+        </div>
+
+        <!-- Tab Content: Individual -->
+        <div id="individual-tab" class="tab-content active">
+            <div class="search-box">
+                <h2>Buscar RUC Individual</h2>
+                <form id="form-individual">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="ruc-input"
+                            placeholder="Ingrese RUC (11 dígitos)"
+                            maxlength="11"
+                            pattern="\d{11}"
+                            required
+                        >
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Buscar</span>
+                            <span class="btn-loader" style="display: none;">Buscando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Resultado Individual -->
+            <div id="resultado-individual" class="resultado" style="display: none;">
+                <!-- El contenido se genera dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Tab Content: Batch -->
+        <div id="batch-tab" class="tab-content">
+            <div class="search-box">
+                <h2>Búsqueda Masiva de RUCs</h2>
+                <form id="form-batch">
+                    <div class="input-group-vertical">
+                        <label for="rucs-input">Ingrese RUCs (uno por línea)</label>
+                        <textarea
+                            id="rucs-input"
+                            placeholder="20123456789&#10;10987654321&#10;20555666777"
+                            rows="8"
+                            required
+                        ></textarea>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Procesar RUCs</span>
+                            <span class="btn-loader" style="display: none;">Procesando...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Resultado Batch -->
+            <div id="resultado-batch" class="resultado" style="display: none;">
+                <!-- El contenido se genera dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alert-container"></div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
