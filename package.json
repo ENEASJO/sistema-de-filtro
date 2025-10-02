@@ -4,11 +4,10 @@
   "description": "Sistema de filtrado de RUCs y validación de DNIs contra base de datos de familiares",
   "main": "index.js",
   "scripts": {
-    "start": "node src/api/server.js",
+    "start": "./start.sh",
     "dev": "node src/api/server.js",
     "filtrar": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "npx playwright install chromium"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
