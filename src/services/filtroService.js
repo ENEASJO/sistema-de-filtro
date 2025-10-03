@@ -6,6 +6,7 @@ delete require.cache[require.resolve('../scrapers/ejzagetroScraper')];
 const SunatScraper = require('../scrapers/sunatScraperPlaywright');
 const OsceScraper = require('../scrapers/osceScraper');
 const EjzagetroScraper = require('../scrapers/ejzagetroScraper');
+const formatearNombre = require('../utils/formatNombre');
 
 /**
  * Servicio principal de filtrado de RUCs y validación de DNIs
@@ -127,7 +128,7 @@ class FiltroService {
         resultado.detallesSunat.representantes.forEach(rep => {
           personasMap.set(rep.dni, {
             dni: rep.dni,
-            nombre: rep.nombre,
+            nombre: rep.nombre ? formatearNombre(rep.nombre) : rep.nombre,
             fuentes: ['SUNAT'],
             razonSocial: resultado.detallesSunat.razonSocial || ''
           });
@@ -141,12 +142,12 @@ class FiltroService {
             personasMap.get(rep.dni).fuentes.push('OSCE');
             // Si OSCE tiene nombre y SUNAT no, usar el de OSCE
             if (!personasMap.get(rep.dni).nombre && rep.nombre) {
-              personasMap.get(rep.dni).nombre = rep.nombre;
+              personasMap.get(rep.dni).nombre = formatearNombre(rep.nombre);
             }
           } else {
             personasMap.set(rep.dni, {
               dni: rep.dni,
-              nombre: rep.nombre,
+              nombre: rep.nombre ? formatearNombre(rep.nombre) : rep.nombre,
               fuentes: ['OSCE'],
               razonSocial: resultado.detallesOsce.razonSocial || ''
             });

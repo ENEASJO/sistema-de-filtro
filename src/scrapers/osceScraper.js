@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const formatearNombre = require('../utils/formatNombre');
 
 /**
  * Scraper para OSCE - Obtiene información de proveedores y DNIs
@@ -116,7 +117,7 @@ class OsceScraper {
             if (!esProbableRUC && nombre && nombre !== 'Sin nombre') {
               resultado.representantes.push({
                 dni: dni,
-                nombre: nombre
+                nombre: formatearNombre(nombre)
               });
               resultado.dnis.push(dni);
             }

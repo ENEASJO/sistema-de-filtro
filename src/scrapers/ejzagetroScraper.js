@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const formatearNombre = require('../utils/formatNombre');
 
 /**
  * Scraper para ejzagetro.com - Valida si un DNI aparece como familiar
@@ -80,6 +81,7 @@ class EjzagetroScraper {
         // Extraer nombres - buscar "NOMBRES" seguido del nombre
         const nombresMatch = textoCompleto.match(/NOMBRES[:\s]*([\w\s,áéíóúÁÉÍÓÚñÑ]+)/i);
         if (nombresMatch) {
+          // Nombre será formateado después del evaluate
           data.nombrePersona = nombresMatch[1].trim().split('\n')[0].trim();
         }
 
@@ -90,6 +92,11 @@ class EjzagetroScraper {
       });
 
       resultado.dni = dni;
+
+      // Formatear nombre si existe
+      if (resultado.nombrePersona) {
+        resultado.nombrePersona = formatearNombre(resultado.nombrePersona);
+      }
 
       console.log(`[EJZAGETRO] DNI ${dni} - Parentesco: ${resultado.parentesco || 'No detectado'} - Familiar: ${resultado.esFamiliar ? 'SÍ' : 'NO'}`);
 
