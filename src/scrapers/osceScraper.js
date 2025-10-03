@@ -117,7 +117,7 @@ class OsceScraper {
             if (!esProbableRUC && nombre && nombre !== 'Sin nombre') {
               resultado.representantes.push({
                 dni: dni,
-                nombre: formatearNombre(nombre)
+                nombre: nombre
               });
               resultado.dnis.push(dni);
             }
@@ -137,6 +137,14 @@ class OsceScraper {
 
         return resultado;
       });
+
+      // Formatear nombres de representantes
+      if (datos.representantes && datos.representantes.length > 0) {
+        datos.representantes = datos.representantes.map(rep => ({
+          ...rep,
+          nombre: rep.nombre ? formatearNombre(rep.nombre) : rep.nombre
+        }));
+      }
 
       console.log(`[OSCE] Encontrados ${datos.dnis.length} DNIs para RUC ${ruc}`);
       if (datos.dnis.length > 0) {
