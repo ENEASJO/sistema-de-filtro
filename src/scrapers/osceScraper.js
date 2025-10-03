@@ -108,11 +108,18 @@ class OsceScraper {
               }
             }
 
-            resultado.representantes.push({
-              dni: dni,
-              nombre: nombre || 'Sin nombre'
-            });
-            resultado.dnis.push(dni);
+            // Validar que el DNI no sea parte de un RUC
+            // Los DNIs en Perú empiezan típicamente con números del 0-7, no con 2
+            // Si empieza con 20, probablemente sea un RUC mal extraído
+            const esProbableRUC = dni.startsWith('20') || dni.startsWith('10') || dni.startsWith('15') || dni.startsWith('17');
+
+            if (!esProbableRUC && nombre && nombre !== 'Sin nombre') {
+              resultado.representantes.push({
+                dni: dni,
+                nombre: nombre
+              });
+              resultado.dnis.push(dni);
+            }
           }
         }
 
