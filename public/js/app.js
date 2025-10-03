@@ -326,6 +326,71 @@ function mostrarResultadoBatch(reporte, resultados) {
                 `).join('')}
             </div>
         ` : ''}
+
+        <div class="dni-section">
+            <h3>👥 Detalle de Todas las Personas Encontradas</h3>
+            ${resultados.map(resultado => `
+                ${resultado.personasDetalladas && resultado.personasDetalladas.length > 0 ? `
+                    <div style="margin-bottom: 30px;">
+                        <h4 style="margin: 10px 0; padding: 10px; background: #f3f4f6; border-radius: 6px;">
+                            RUC: ${resultado.ruc} - ${resultado.razonSocial || 'Sin razón social'}
+                            <span class="status-badge ${resultado.aprobado ? 'status-aprobado' : 'status-rechazado'}" style="font-size: 0.8rem; padding: 4px 10px; margin-left: 10px;">
+                                ${resultado.aprobado ? '✅ Aprobado' : '❌ Rechazado'}
+                            </span>
+                        </h4>
+                        <div class="table-container">
+                            <table class="personas-table">
+                                <thead>
+                                    <tr>
+                                        <th>DNI</th>
+                                        <th>Nombre Completo</th>
+                                        <th>Fuente</th>
+                                        <th>Es Familiar</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${resultado.personasDetalladas.map(persona => `
+                                        <tr>
+                                            <td>
+                                                <code class="dni-code">${persona.dni}</code>
+                                            </td>
+                                            <td class="nombre-cell">
+                                                <strong>${persona.nombre || persona.nombrePersona || '-'}</strong>
+                                            </td>
+                                            <td>
+                                                <div class="fuente-badges">
+                                                    ${[...new Set(persona.fuentes)].map(fuente => {
+                                                        const config = fuente === 'SUNAT'
+                                                            ? { bg: '#3b82f6', icon: '🏛️' }
+                                                            : { bg: '#10b981', icon: '📋' };
+                                                        return `<span class="fuente-badge" style="background: ${config.bg};">${config.icon} ${fuente}</span>`;
+                                                    }).join('')}
+                                                </div>
+                                            </td>
+                                            <td class="center-cell">
+                                                ${persona.esFamiliar
+                                                    ? '<span class="badge badge-danger">❌ SÍ</span>'
+                                                    : '<span class="badge badge-success">✅ NO</span>'
+                                                }
+                                            </td>
+                                            <td class="center-cell">
+                                                ${persona.encontrado !== undefined
+                                                    ? (persona.encontrado
+                                                        ? '<span class="badge badge-warning">⚠️ Encontrado en Sistema</span>'
+                                                        : '<span class="badge badge-success">✅ No encontrado</span>')
+                                                    : '<span class="badge badge-info">ℹ️ Pendiente</span>'
+                                                }
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ` : ''}
+            `).join('')}
+        </div>
     `;
 
     container.innerHTML = html;
