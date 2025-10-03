@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
+        <span class="theme-toggle-icon">🌙</span>
+    </button>
+
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -86,6 +91,29 @@
         </p>
     </footer>
 
+    <script>
+        // Theme Toggle - Cargar tema guardado inmediatamente
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = themeToggle.querySelector('.theme-toggle-icon');
+
+            // Actualizar icono inicial
+            themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+            // Toggle theme
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+            });
+        })();
+    </script>
     <script src="/js/app.js"></script>
 </body>
 </html>
