@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_BASE_URL = 'https://sistema-de-filtro.onrender.com/api';
+const API_BASE_URL = 'https://sistema-filtro-backend-production.up.railway.app/api';
 
 // Estado de la aplicación
 const state = {
