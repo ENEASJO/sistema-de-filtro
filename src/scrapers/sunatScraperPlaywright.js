@@ -32,12 +32,10 @@ class SunatScraperPlaywright {
 
       console.log('[SUNAT-PW] Navegando a la página...');
       await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await page.waitForTimeout(2000);
 
       console.log('[SUNAT-PW] Ingresando RUC...');
       await page.waitForSelector('input[placeholder*="Ingrese RUC"]', { timeout: 10000 });
       await page.fill('input[placeholder*="Ingrese RUC"]', ruc);
-      await page.waitForTimeout(500);
 
       console.log('[SUNAT-PW] Haciendo clic en Buscar...');
       await page.click('button:has-text("Buscar")');
@@ -48,7 +46,9 @@ class SunatScraperPlaywright {
       } catch (navError) {
         console.log('[SUNAT-PW] Navegación sin networkidle, continuando...');
       }
-      await page.waitForTimeout(3000);
+
+      // Esperar a que aparezca contenido (más rápido que timeout fijo)
+      await page.waitForSelector('h4, button, .btn', { timeout: 10000 });
 
       console.log('[SUNAT-PW] Extrayendo información básica...');
       const datos = await page.evaluate(() => {
@@ -107,10 +107,10 @@ class SunatScraperPlaywright {
 
         if (popup) {
           console.log('[SUNAT-PW] Popup detectado, esperando carga...');
-          await popup.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+          await popup.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
 
-          // Esperar un poco más para asegurar que todo cargó
-          await page.waitForTimeout(1000);
+          // Esperar a que la tabla esté lista
+          await popup.waitForSelector('table, tr, td', { timeout: 5000 }).catch(() => {});
 
           console.log('[SUNAT-PW] Extrayendo DNIs y nombres del popup...');
           const representantes = await popup.evaluate(() => {

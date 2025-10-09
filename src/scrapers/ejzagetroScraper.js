@@ -29,17 +29,17 @@ class EjzagetroScraper {
 
       console.log('[EJZAGETRO] Navegando a la página...');
       await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await page.waitForTimeout(1500);
 
       console.log('[EJZAGETRO] Ingresando DNI...');
       // Esperar input y llenar
+      await page.waitForSelector('input[type="text"]', { timeout: 10000 });
       await page.fill('input[type="text"]', dni);
 
       console.log('[EJZAGETRO] Haciendo clic en Buscar...');
       await page.click('button:has-text("Buscar")');
 
-      // Esperar resultados (reducido de 3s a 1.5s)
-      await page.waitForTimeout(1500);
+      // Esperar resultados o mensaje de error (más rápido que timeout fijo)
+      await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
 
       // Extraer resultados
       const resultado = await page.evaluate(() => {
@@ -126,8 +126,8 @@ class EjzagetroScraper {
         const resultado = await this.buscarDNI(dni);
         resultados.push(resultado);
 
-        // Esperar entre consultas para evitar bloqueos (reducido de 2s a 800ms)
-        await this.sleep(800);
+        // Esperar entre consultas para evitar bloqueos (optimizado a 500ms)
+        await this.sleep(500);
       } catch (error) {
         console.error(`Error validando DNI ${dni}:`, error.message);
         resultados.push({

@@ -29,7 +29,9 @@ class OsceScraper {
 
       console.log('[OSCE] Navegando a la página...');
       await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      await page.waitForTimeout(1500);
+
+      // Esperar a que el input esté listo (más rápido que timeout fijo)
+      await page.waitForSelector('input[placeholder*="Buscar"]', { timeout: 10000 });
 
       console.log('[OSCE] Ingresando RUC...');
       await page.fill('input[placeholder*="Buscar"]', ruc);
@@ -37,8 +39,13 @@ class OsceScraper {
       console.log('[OSCE] Presionando Enter para buscar...');
       await page.keyboard.press('Enter');
 
-      // Esperar resultados
-      await page.waitForTimeout(4000);
+      // Esperar a que aparezcan resultados
+      try {
+        await page.waitForSelector(`a:has-text("${ruc}")`, { timeout: 8000 });
+      } catch {
+        // Fallback: esperar un poco más si no apareció el RUC específico
+        await page.waitForTimeout(2000);
+      }
 
       console.log('[OSCE] Verificando resultados...');
       // Buscar el link con el RUC y hacer clic
@@ -61,8 +68,11 @@ class OsceScraper {
       console.log('[OSCE] Haciendo clic en el resultado...');
       await page.locator(`a:has-text("${ruc}")`).first().click();
 
-      // Esperar a que cargue la ficha
-      await page.waitForTimeout(3000);
+      // Esperar a que cargue la ficha completamente
+      await Promise.race([
+        page.waitForSelector('strong:has-text("Socios"), strong:has-text("Representantes")', { timeout: 8000 }),
+        page.waitForTimeout(2500) // Fallback
+      ]);
 
       console.log('[OSCE] Extrayendo DNIs y nombres de la ficha...');
       // Extraer información de la ficha detallada
