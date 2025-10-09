@@ -31,16 +31,24 @@ class SunatScraperPlaywright {
       const page = await context.newPage();
 
       console.log('[SUNAT-PW] Navegando a la página...');
-      await page.goto(this.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(2000);
 
       console.log('[SUNAT-PW] Ingresando RUC...');
+      await page.waitForSelector('input[placeholder*="Ingrese RUC"]', { timeout: 10000 });
       await page.fill('input[placeholder*="Ingrese RUC"]', ruc);
+      await page.waitForTimeout(500);
 
       console.log('[SUNAT-PW] Haciendo clic en Buscar...');
-      await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle', timeout: 30000 }),
-        page.click('button:has-text("Buscar")')
-      ]);
+      await page.click('button:has-text("Buscar")');
+
+      // Esperar resultados con estrategia más flexible
+      try {
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 });
+      } catch (navError) {
+        console.log('[SUNAT-PW] Navegación sin networkidle, continuando...');
+      }
+      await page.waitForTimeout(3000);
 
       console.log('[SUNAT-PW] Extrayendo información básica...');
       const datos = await page.evaluate(() => {

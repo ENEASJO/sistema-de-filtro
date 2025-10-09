@@ -28,7 +28,8 @@ class OsceScraper {
       const page = await context.newPage();
 
       console.log('[OSCE] Navegando a la página...');
-      await page.goto(this.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(1500);
 
       console.log('[OSCE] Ingresando RUC...');
       await page.fill('input[placeholder*="Buscar"]', ruc);

@@ -32,7 +32,7 @@ WORKDIR /app
 # Copiar package.json y package-lock.json
 COPY package*.json ./
 
-# Instalar dependencias
+# Instalar dependencias de Node
 RUN npm install
 
 # Instalar navegadores de Playwright

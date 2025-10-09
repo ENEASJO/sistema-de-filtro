@@ -28,7 +28,8 @@ class EjzagetroScraper {
       const page = await context.newPage();
 
       console.log('[EJZAGETRO] Navegando a la página...');
-      await page.goto(this.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(1500);
 
       console.log('[EJZAGETRO] Ingresando DNI...');
       // Esperar input y llenar
