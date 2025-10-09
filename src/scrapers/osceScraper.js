@@ -83,10 +83,40 @@ class OsceScraper {
         const rucMatch = textoCompleto.match(/RUC[:\s]*(\d{11})/i);
         if (rucMatch) resultado.ruc = rucMatch[1];
 
+        // MÉTODO NUEVO: Buscar primero en elementos <strong> (más preciso)
+        const dnisEncontrados = new Map();
+        const strongElements = document.querySelectorAll('strong');
+
+        strongElements.forEach(strong => {
+          const nombreTexto = strong.textContent.trim();
+
+          // Verificar que parece un nombre (más de 10 caracteres, tiene letras)
+          if (nombreTexto.length > 10 && /[A-ZÁÉÍÓÚÑa-záéíóúñ\s]{10,}/.test(nombreTexto)) {
+            // Buscar el DNI en el elemento padre
+            let parent = strong.parentElement;
+            if (parent) {
+              const parentText = parent.textContent;
+              // Buscar patrón "D.N.I. - 12345678"
+              const dniMatch = parentText.match(/(?:D\.N\.I\.|DNI)[:\s\-]*(\d{8})/i);
+
+              if (dniMatch) {
+                const dni = dniMatch[1];
+
+                // Validar que no sea parte de un RUC
+                const esProbableRUC = dni.startsWith('20') || dni.startsWith('10') ||
+                                       dni.startsWith('15') || dni.startsWith('17');
+
+                if (!esProbableRUC) {
+                  dnisEncontrados.set(dni, { dni, nombre: nombreTexto });
+                }
+              }
+            }
+          }
+        });
+
         // Método 1: Buscar DNIs con formato "D.N.I. - 12345678" o "DNI - 12345678"
         const dniPattern1 = /(?:D\.N\.I\.|DNI)[:\s\-]*(\d{8})/gi;
         let match;
-        const dnisEncontrados = new Map(); // Usar Map para evitar duplicados y guardar contexto
 
         while ((match = dniPattern1.exec(textoCompleto)) !== null) {
           const dni = match[1];
