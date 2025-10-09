@@ -170,11 +170,24 @@ class OsceScraper {
           }
         }
 
-        // Convertir Map a array
+        // Convertir Map a array y limpiar nombres
         dnisEncontrados.forEach((data) => {
+          let nombreLimpio = data.nombre || '';
+
+          // Limpiar el nombre de caracteres extraños
+          nombreLimpio = nombreLimpio
+            .replace(/\s+/g, ' ')  // Normalizar espacios
+            .replace(/[^\w\sÁÉÍÓÚÑáéíóúñ]/g, ' ')  // Quitar caracteres especiales
+            .trim();
+
+          // Si el nombre tiene menos de 5 caracteres, no es válido
+          if (nombreLimpio.length < 5) {
+            nombreLimpio = '';
+          }
+
           resultado.representantes.push({
             dni: data.dni,
-            nombre: data.nombre || 'Nombre no encontrado'
+            nombre: nombreLimpio || 'Nombre no encontrado'
           });
           resultado.dnis.push(data.dni);
         });
