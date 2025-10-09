@@ -83,57 +83,121 @@ class OsceScraper {
         const rucMatch = textoCompleto.match(/RUC[:\s]*(\d{11})/i);
         if (rucMatch) resultado.ruc = rucMatch[1];
 
-        // Buscar DNIs con nombres - Patrón: "Nombre Apellidos\nTipo de Documento:\nD.N.I. - 12345678"
-        const lineas = textoCompleto.split('\n').map(l => l.trim());
+        // Método 1: Buscar DNIs con formato "D.N.I. - 12345678" o "DNI - 12345678"
+        const dniPattern1 = /(?:D\.N\.I\.|DNI)[:\s\-]*(\d{8})/gi;
+        let match;
+        const dnisEncontrados = new Map(); // Usar Map para evitar duplicados y guardar contexto
 
+        while ((match = dniPattern1.exec(textoCompleto)) !== null) {
+          const dni = match[1];
+
+          // Validar que el DNI no sea parte de un RUC
+          const esProbableRUC = dni.startsWith('20') || dni.startsWith('10') ||
+                                 dni.startsWith('15') || dni.startsWith('17');
+
+          if (!esProbableRUC && !dnisEncontrados.has(dni)) {
+            dnisEncontrados.set(dni, { dni, nombre: '' });
+          }
+        }
+
+        // Método 2: Buscar en tablas (más confiable)
+        const tables = document.querySelectorAll('table');
+        tables.forEach(table => {
+          const rows = table.querySelectorAll('tr');
+          rows.forEach(row => {
+            const cells = Array.from(row.querySelectorAll('td, th'));
+            const rowText = cells.map(c => c.innerText.trim()).join(' | ');
+
+            // Buscar patrones de DNI en la fila
+            const dniInRow = rowText.match(/(\d{8})/g);
+            if (dniInRow) {
+              dniInRow.forEach(dni => {
+                // Validar formato de DNI (8 dígitos, no empieza con 10,15,17,20)
+                if (dni.length === 8 &&
+                    !dni.startsWith('20') &&
+                    !dni.startsWith('10') &&
+                    !dni.startsWith('15') &&
+                    !dni.startsWith('17')) {
+
+                  // Buscar nombre en la misma fila
+                  let nombre = '';
+                  cells.forEach(cell => {
+                    const text = cell.innerText.trim();
+                    // Si la celda tiene más de 10 caracteres y contiene letras, probablemente sea un nombre
+                    if (text.length > 10 && /[A-ZÁÉÍÓÚÑa-záéíóúñ]{3,}/.test(text) &&
+                        !text.includes(dni) && !text.match(/\d{8,}/)) {
+                      nombre = text;
+                    }
+                  });
+
+                  if (!dnisEncontrados.has(dni)) {
+                    dnisEncontrados.set(dni, { dni, nombre });
+                  } else if (nombre && !dnisEncontrados.get(dni).nombre) {
+                    dnisEncontrados.get(dni).nombre = nombre;
+                  }
+                }
+              });
+            }
+          });
+        });
+
+        // Método 3: Buscar en el texto completo por líneas
+        const lineas = textoCompleto.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         for (let i = 0; i < lineas.length; i++) {
           const linea = lineas[i];
 
-          // Buscar líneas con "D.N.I. - 12345678"
-          const dniMatch = linea.match(/D\.N\.I\.\s*-\s*(\d{8})/i);
-          if (dniMatch) {
-            const dni = dniMatch[1];
+          // Buscar DNIs sueltos (8 dígitos consecutivos)
+          const dnisSueltos = linea.match(/\b(\d{8})\b/g);
+          if (dnisSueltos) {
+            dnisSueltos.forEach(dni => {
+              const esProbableRUC = dni.startsWith('20') || dni.startsWith('10') ||
+                                     dni.startsWith('15') || dni.startsWith('17');
 
-            // Buscar el nombre en las líneas anteriores
-            let nombre = '';
-            // Retroceder hasta encontrar un nombre (línea con texto largo antes de "Tipo de Documento:")
-            for (let j = i - 1; j >= Math.max(0, i - 5); j--) {
-              const lineaAnterior = lineas[j];
-              if (lineaAnterior &&
-                  lineaAnterior.length > 5 &&
-                  !lineaAnterior.includes('Documento:') &&
-                  !lineaAnterior.includes('D.N.I.') &&
-                  !lineaAnterior.includes('Tipo de') &&
-                  /[A-ZÁÉÍÓÚÑa-záéíóúñ\s]+/.test(lineaAnterior)) {
-                nombre = lineaAnterior;
-                break;
+              if (!esProbableRUC && !dnisEncontrados.has(dni)) {
+                // Buscar nombre en líneas cercanas
+                let nombre = '';
+                for (let j = Math.max(0, i - 3); j <= Math.min(lineas.length - 1, i + 3); j++) {
+                  if (j !== i && lineas[j].length > 10 &&
+                      /[A-ZÁÉÍÓÚÑa-záéíóúñ\s]{10,}/.test(lineas[j]) &&
+                      !lineas[j].match(/\d{8,}/)) {
+                    nombre = lineas[j];
+                    break;
+                  }
+                }
+                dnisEncontrados.set(dni, { dni, nombre });
               }
-            }
-
-            // Validar que el DNI no sea parte de un RUC
-            // Los DNIs en Perú empiezan típicamente con números del 0-7, no con 2
-            // Si empieza con 20, probablemente sea un RUC mal extraído
-            const esProbableRUC = dni.startsWith('20') || dni.startsWith('10') || dni.startsWith('15') || dni.startsWith('17');
-
-            if (!esProbableRUC && nombre && nombre !== 'Sin nombre') {
-              resultado.representantes.push({
-                dni: dni,
-                nombre: nombre
-              });
-              resultado.dnis.push(dni);
-            }
+            });
           }
         }
+
+        // Convertir Map a array
+        dnisEncontrados.forEach((data) => {
+          resultado.representantes.push({
+            dni: data.dni,
+            nombre: data.nombre || 'Nombre no encontrado'
+          });
+          resultado.dnis.push(data.dni);
+        });
 
         // Eliminar duplicados de DNIs
         resultado.dnis = [...new Set(resultado.dnis)];
 
-        // Extraer razón social
-        const primerParrafo = document.body.innerText.split('\n').find(line =>
-          line.length > 10 && !line.includes('RUC') && !line.includes('Vigentes')
-        );
-        if (primerParrafo) {
-          resultado.razonSocial = primerParrafo.trim();
+        // Extraer razón social (mejorado)
+        const h1 = document.querySelector('h1, h2, .title, .nombre-empresa');
+        if (h1) {
+          resultado.razonSocial = h1.innerText.trim();
+        } else {
+          // Buscar en las primeras líneas
+          for (const linea of lineas.slice(0, 10)) {
+            if (linea.length > 15 && linea.length < 200 &&
+                !linea.includes('RUC') &&
+                !linea.includes('Vigentes') &&
+                !linea.match(/\d{11}/) &&
+                /[A-ZÁÉÍÓÚÑa-záéíóúñ\s]{10,}/.test(linea)) {
+              resultado.razonSocial = linea;
+              break;
+            }
+          }
         }
 
         return resultado;
