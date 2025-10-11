@@ -6,10 +6,17 @@ Sistema automatizado para filtrado de RUCs y validación de DNIs contra base de 
 
 El sistema realiza las siguientes operaciones:
 
+### 🏢 Filtrado de RUCs
 1. **Consulta SUNAT**: Extrae información del RUC y DNIs de representantes legales
 2. **Consulta OSCE**: Obtiene datos adicionales del proveedor y personas vinculadas
 3. **Validación de Familiares**: Verifica cada DNI en ejzagetro.com para detectar familiares
 4. **Decisión de Pago**: Aprueba o rechaza el pago según los resultados
+
+### 🔗 Comparación Masiva de DNIs ⭐ NUEVO
+1. **Ingreso de DNIs**: Usuario ingresa múltiples DNIs (mínimo 2)
+2. **Validación en ejzagetro.com**: Consulta cada DNI para obtener información de familiares
+3. **Detección de Vínculos**: Compara los DNIs ingresados y detecta si hay relaciones familiares
+4. **Reporte Visual**: Muestra vínculos detectados con nombres, parentescos y relaciones
 
 ## 🚀 Instalación
 
@@ -47,9 +54,11 @@ Abrir en el navegador: `http://localhost:3000`
 La interfaz web incluye:
 - ✅ Búsqueda individual de RUCs
 - ✅ Búsqueda masiva (múltiples RUCs)
+- ✅ **Comparación masiva de DNIs** ⭐ NUEVO
 - ✅ Visualización de resultados en tiempo real
 - ✅ Detalles de validación de cada DNI
 - ✅ Reporte de aprobados/rechazados
+- ✅ Detección de vínculos familiares
 
 #### Endpoints Disponibles:
 
@@ -83,7 +92,25 @@ Content-Type: application/json
 }
 ```
 
-**4. Health Check**
+**4. Comparar DNIs y Detectar Vínculos Familiares** ⭐ NUEVO
+```bash
+POST /api/comparar-dnis
+Content-Type: application/json
+
+{
+  "dnis": ["12345678", "87654321", "11223344"]
+}
+```
+
+**Características de la comparación de DNIs:**
+- ✅ Ingresa múltiples DNIs (mínimo 2)
+- ✅ Detecta vínculos familiares entre ellos
+- ✅ NO realiza scraping a SUNAT/OSCE
+- ✅ Solo compara los DNIs ingresados contra ejzagetro.com
+- ✅ Muestra relaciones familiares detectadas
+- ✅ Identifica parentesco (hermano, padre, hijo, etc.)
+
+**5. Health Check**
 ```bash
 GET /api/health
 ```
@@ -94,14 +121,19 @@ GET /api/health
 sistema-de-filtro/
 ├── src/
 │   ├── scrapers/
-│   │   ├── sunatScraper.js      # Scraper para SUNAT
-│   │   ├── osceScraper.js       # Scraper para OSCE
-│   │   └── ejzagetroScraper.js  # Scraper para ejzagetro.com
+│   │   ├── sunatScraper.js           # Scraper para SUNAT
+│   │   ├── osceScraper.js            # Scraper para OSCE
+│   │   └── ejzagetroScraper.js       # Scraper para ejzagetro.com
 │   ├── services/
-│   │   └── filtroService.js     # Lógica principal de filtrado
+│   │   ├── filtroService.js          # Lógica principal de filtrado de RUCs
+│   │   └── comparacionDNIService.js  # ⭐ Servicio de comparación de DNIs
 │   └── api/
-│       └── server.js             # Servidor API REST
-├── index.js                      # Script CLI principal
+│       └── server.js                  # Servidor API REST
+├── public/                            # Interfaz web
+│   ├── index.html                     # HTML con tabs
+│   ├── css/styles.css                 # Estilos (dark/light mode)
+│   └── js/app.js                      # Lógica frontend
+├── index.js                           # Script CLI principal
 ├── package.json
 └── README.md
 ```

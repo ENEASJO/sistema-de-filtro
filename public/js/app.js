@@ -1,5 +1,9 @@
-// Configuración de la API
-const API_BASE_URL = 'https://sistema-de-filtro-production.up.railway.app/api';
+// Configuración de la API - Detecta automáticamente local vs producción
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000/api'  // Desarrollo local
+    : 'https://sistema-de-filtro-production.up.railway.app/api';  // Producción
+
+console.log('🔧 API_BASE_URL configurada:', API_BASE_URL);
 
 // Estado de la aplicación
 const state = {
@@ -52,6 +56,15 @@ function initForms() {
         const rucText = document.getElementById('rucs-input').value.trim();
         const rucs = rucText.split('\n').map(r => r.trim()).filter(r => r.length > 0);
         await buscarRUCsBatch(rucs);
+    });
+
+    // Formulario comparar DNIs
+    const formComparar = document.getElementById('form-comparar');
+    formComparar.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dnisText = document.getElementById('dnis-input').value.trim();
+        const dnis = dnisText.split('\n').map(d => d.trim()).filter(d => d.length > 0);
+        await compararDNIs(dnis);
     });
 
     // Validación en tiempo real
@@ -397,7 +410,271 @@ function mostrarResultadoBatch(reporte, resultados) {
     container.style.display = 'block';
 }
 
+// ===== COMPARAR DNIS =====
+async function compararDNIs(dnis) {
+    if (dnis.length === 0) {
+        showAlert('error', 'Debe ingresar al menos un DNI');
+        return;
+    }
+
+    if (dnis.length < 2) {
+        showAlert('error', 'Debe ingresar al menos 2 DNIs para comparar');
+        return;
+    }
+
+    // Validar todos los DNIs
+    const invalidos = dnis.filter(dni => !validarDNI(dni));
+    if (invalidos.length > 0) {
+        showAlert('error', `DNIs inválidos encontrados: ${invalidos.join(', ')}`);
+        return;
+    }
+
+    setLoading('comparar', true);
+    hideResultado('comparar');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/comparar-dnis`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ dnis })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Error al procesar la solicitud');
+        }
+
+        mostrarResultadoComparacion(data.reporte, data.detalles);
+        showAlert('success', `${dnis.length} DNIs comparados exitosamente`);
+
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert('error', `Error: ${error.message}`);
+    } finally {
+        setLoading('comparar', false);
+    }
+}
+
+function mostrarResultadoComparacion(reporte, detalles) {
+    const container = document.getElementById('resultado-comparar');
+
+    const html = `
+        <h2>📊 Resultado de la Comparación</h2>
+
+        <div class="status-badge ${reporte.hayVinculos ? 'status-rechazado' : 'status-aprobado'}">
+            ${reporte.hayVinculos ? '⚠️ VÍNCULOS FAMILIARES DETECTADOS' : '✅ NO HAY VÍNCULOS FAMILIARES'}
+        </div>
+
+        <div class="summary-cards">
+            <div class="summary-card total">
+                <div class="summary-number">${reporte.totalDNIs}</div>
+                <div class="summary-label">Total DNIs</div>
+            </div>
+            <div class="summary-card ${reporte.hayVinculos ? 'rechazado' : 'aprobado'}">
+                <div class="summary-number">${reporte.totalVinculos}</div>
+                <div class="summary-label">Vínculos Encontrados</div>
+            </div>
+            <div class="summary-card aprobado">
+                <div class="summary-number">${reporte.dnisSinVinculos.length}</div>
+                <div class="summary-label">DNIs Sin Vínculos</div>
+            </div>
+            <div class="summary-card" style="background: linear-gradient(135deg, #64748b 0%, #475569 100%); color: white;">
+                <div class="summary-number">${reporte.dnisSinDatos.length}</div>
+                <div class="summary-label">DNIs Sin Datos</div>
+            </div>
+        </div>
+
+        <div style="padding: 15px; background: ${reporte.hayVinculos ? '#fee2e2' : '#d1fae5'}; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${reporte.hayVinculos ? '#ef4444' : '#10b981'};">
+            <strong style="color: ${reporte.hayVinculos ? '#991b1b' : '#065f46'};">${reporte.mensaje}</strong>
+        </div>
+
+        ${reporte.hayVinculos && reporte.vinculos.length > 0 ? `
+            <div class="dni-section">
+                <h3 style="color: #dc2626;">🔗 Vínculos Familiares Detectados (${reporte.vinculos.length})</h3>
+                <div style="margin-top: 15px;">
+                    ${reporte.vinculos.map((vinculo, index) => `
+                        <div style="
+                            padding: 20px;
+                            background: white;
+                            border: 2px solid #fecaca;
+                            border-radius: 12px;
+                            margin-bottom: 15px;
+                            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);
+                        ">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <span style="
+                                    background: #dc2626;
+                                    color: white;
+                                    padding: 6px 12px;
+                                    border-radius: 50%;
+                                    font-weight: bold;
+                                    font-size: 0.9rem;
+                                ">${index + 1}</span>
+                                <span style="font-size: 1.1rem; font-weight: bold; color: #dc2626;">
+                                    VÍNCULO FAMILIAR DETECTADO
+                                </span>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: center; margin-top: 15px;">
+                                <!-- Persona 1 -->
+                                <div style="padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                    <div style="font-size: 0.75rem; color: #92400e; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">
+                                        Persona 1
+                                    </div>
+                                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 5px;">
+                                        ${vinculo.nombre1}
+                                    </div>
+                                    <code class="dni-code" style="font-size: 0.95rem;">${vinculo.dni1}</code>
+                                </div>
+
+                                <!-- Relación -->
+                                <div style="text-align: center;">
+                                    <div style="
+                                        background: #fee2e2;
+                                        color: #991b1b;
+                                        padding: 8px 15px;
+                                        border-radius: 20px;
+                                        font-weight: 700;
+                                        font-size: 0.85rem;
+                                        white-space: nowrap;
+                                        border: 2px solid #ef4444;
+                                    ">
+                                        ↔ ${vinculo.tipoRelacion}
+                                    </div>
+                                </div>
+
+                                <!-- Persona 2 -->
+                                <div style="padding: 15px; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                                    <div style="font-size: 0.75rem; color: #92400e; font-weight: 600; text-transform: uppercase; margin-bottom: 5px;">
+                                        Persona 2
+                                    </div>
+                                    <div style="font-weight: bold; color: #1e293b; margin-bottom: 5px;">
+                                        ${vinculo.nombre2}
+                                    </div>
+                                    <code class="dni-code" style="font-size: 0.95rem;">${vinculo.dni2}</code>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 12px; padding: 10px; background: #fef2f2; border-radius: 6px;">
+                                <small style="color: #7f1d1d; font-weight: 500;">
+                                    📍 ${vinculo.direccion}
+                                </small>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : ''}
+
+        ${reporte.dnisConVinculos.length > 0 ? `
+            <div class="dni-section">
+                <h3>⚠️ DNIs con Vínculos (${reporte.dnisConVinculos.length})</h3>
+                <div class="dni-list">
+                    ${reporte.dnisConVinculos.map(dni =>
+                        `<span class="dni-badge dni-rechazado">${dni}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        ` : ''}
+
+        ${reporte.dnisSinVinculos.length > 0 ? `
+            <div class="dni-section">
+                <h3>✅ DNIs Sin Vínculos (${reporte.dnisSinVinculos.length})</h3>
+                <div class="dni-list">
+                    ${reporte.dnisSinVinculos.map(dni =>
+                        `<span class="dni-badge dni-aprobado">${dni}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        ` : ''}
+
+        ${reporte.dnisSinDatos.length > 0 ? `
+            <div class="dni-section">
+                <h3>ℹ️ DNIs Sin Datos en el Sistema (${reporte.dnisSinDatos.length})</h3>
+                <div class="dni-list">
+                    ${reporte.dnisSinDatos.map(dni =>
+                        `<span class="dni-badge" style="background: #e2e8f0; color: #475569;">${dni}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        ` : ''}
+
+        <div class="dni-section">
+            <h3>📋 Detalle de Todos los DNIs Validados</h3>
+            <div class="table-container">
+                <table class="personas-table">
+                    <thead>
+                        <tr>
+                            <th>DNI</th>
+                            <th>Nombre Completo</th>
+                            <th>Encontrado</th>
+                            <th>Es Familiar</th>
+                            <th>Familiar de</th>
+                            <th>Parentesco</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${detalles.dnisValidados.map(validacion => `
+                            <tr>
+                                <td>
+                                    <code class="dni-code">${validacion.dni}</code>
+                                </td>
+                                <td class="nombre-cell">
+                                    <strong>${validacion.nombrePersona || '-'}</strong>
+                                </td>
+                                <td class="center-cell">
+                                    ${validacion.encontrado
+                                        ? '<span class="badge badge-success">✅ Sí</span>'
+                                        : '<span class="badge badge-info">ℹ️ No</span>'
+                                    }
+                                </td>
+                                <td class="center-cell">
+                                    ${validacion.esFamiliar
+                                        ? '<span class="badge badge-danger">⚠️ SÍ</span>'
+                                        : '<span class="badge badge-success">✅ NO</span>'
+                                    }
+                                </td>
+                                <td>
+                                    ${validacion.esFamiliar && validacion.nombreFamiliar
+                                        ? `<strong>${validacion.nombreFamiliar}</strong><br><code class="dni-code">${validacion.dniFamiliar}</code>`
+                                        : '-'
+                                    }
+                                </td>
+                                <td class="center-cell">
+                                    ${validacion.parentesco
+                                        ? `<span class="badge badge-warning">${validacion.parentesco}</span>`
+                                        : '-'
+                                    }
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f1f5f9; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <small style="color: #475569;">
+                <strong>Fecha:</strong> ${new Date(reporte.timestamp).toLocaleString('es-PE')}<br>
+                <strong>Nota:</strong> Solo se comparan los DNIs ingresados. No se realiza scraping a SUNAT/OSCE.
+            </small>
+        </div>
+    `;
+
+    container.innerHTML = html;
+    container.style.display = 'block';
+}
+
 // ===== UTILIDADES =====
+function validarDNI(dni) {
+    if (!dni || typeof dni !== 'string') return false;
+    const dniLimpio = dni.trim();
+    return /^\d{8}$/.test(dniLimpio);
+}
+
 function validarRUC(ruc) {
     if (!ruc || typeof ruc !== 'string') {
         showAlert('error', 'El RUC es requerido');

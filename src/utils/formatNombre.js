@@ -17,10 +17,21 @@ function formatearNombre(nombreCompleto) {
   }
 
   // Convertir a mayúsculas y limpiar espacios extras
-  const nombreLimpio = nombreCompleto
+  let nombreLimpio = nombreCompleto
     .toUpperCase()
     .trim()
-    .replace(/\s+/g, ' '); // Reemplazar múltiples espacios por uno solo
+    .replace(/\s+/g, ' ') // Reemplazar múltiples espacios por uno solo
+    .replace(/,+/g, ','); // Reemplazar múltiples comas por una sola
+
+  // Si el nombre ya tiene coma, limpiar espacios alrededor de la coma y retornar
+  if (nombreLimpio.includes(',')) {
+    // Limpiar espacios alrededor de las comas
+    return nombreLimpio
+      .split(',')
+      .map(parte => parte.trim())
+      .filter(parte => parte.length > 0)
+      .join(', ');
+  }
 
   // Dividir en palabras
   const palabras = nombreLimpio.split(' ');

@@ -41,6 +41,15 @@ class EjzagetroScraper {
       // Esperar resultados o mensaje de error (más rápido que timeout fijo)
       await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
 
+      // Esperar a que aparezca la tabla de resultados o algún contenido
+      console.log('[EJZAGETRO] Esperando respuesta...');
+      try {
+        await page.waitForSelector('table.table-bordered', { timeout: 10000 });
+      } catch (error) {
+        // Si no aparece la tabla, el DNI probablemente no existe
+        console.log('[EJZAGETRO] No se encontró tabla de resultados - DNI posiblemente no registrado');
+      }
+
       // Extraer resultados
       const resultado = await page.evaluate(() => {
         const data = {
@@ -49,6 +58,7 @@ class EjzagetroScraper {
           esFamiliar: false,
           nombrePersona: '',
           nombreFamiliar: '',
+          dniFamiliar: '',
           parentesco: '',
           detalles: ''
         };
@@ -67,23 +77,44 @@ class EjzagetroScraper {
         // Si hay resultados
         data.encontrado = true;
 
-        // Buscar la etiqueta PARENTESCO específicamente
-        // Buscar PARENTESCO seguido de : o espacios, y capturar la palabra siguiente
-        const parentescoMatch = textoCompleto.match(/PARENTESCO[:\s]+(\w+)/i);
-        if (parentescoMatch) {
-          data.parentesco = parentescoMatch[1].trim().toUpperCase();
+        // Usar selectores DOM para extraer datos de la tabla
+        const filas = document.querySelectorAll('table.table-bordered tr');
 
-          // Si parentesco es diferente de "NINGUNO", entonces SÍ tiene familiares
-          if (data.parentesco !== 'NINGUNO') {
-            data.esFamiliar = true;
+        filas.forEach(fila => {
+          const celdas = fila.querySelectorAll('td, th');
+          if (celdas.length >= 2) {
+            const etiqueta = celdas[0].textContent.trim().toUpperCase();
+            const valor = celdas[1].textContent.trim();
+
+            if (etiqueta === 'NOMBRES') {
+              data.nombrePersona = valor;
+            } else if (etiqueta === 'PARENTESCO') {
+              data.parentesco = valor.toUpperCase();
+
+              // Si parentesco es diferente de "NINGUNO", entonces SÍ tiene familiares
+              if (data.parentesco !== 'NINGUNO') {
+                data.esFamiliar = true;
+              }
+            }
           }
-        }
+        });
 
-        // Extraer nombres - buscar "NOMBRES" seguido del nombre
-        const nombresMatch = textoCompleto.match(/NOMBRES[:\s]*([\w\s,áéíóúÁÉÍÓÚñÑ]+)/i);
-        if (nombresMatch) {
-          // Nombre será formateado después del evaluate
-          data.nombrePersona = nombresMatch[1].trim().split('\n')[0].trim();
+        // Si es familiar, intentar extraer más información del texto
+        if (data.esFamiliar) {
+          // Intentar extraer el nombre del familiar (puede aparecer después de PARENTESCO)
+          // Buscar "CON:" o patrones similares que indiquen el nombre del familiar
+          const conMatch = textoCompleto.match(/CON[:\s]+([\w\s,áéíóúÁÉÍÓÚñÑ]+)/i);
+          if (conMatch) {
+            data.nombreFamiliar = conMatch[1].trim().split('\n')[0].trim();
+          }
+
+          // Intentar extraer DNI del familiar
+          // Buscar patrón de 8 dígitos que no sea el DNI buscado
+          const dniMatches = textoCompleto.match(/\b\d{8}\b/g);
+          if (dniMatches && dniMatches.length > 1) {
+            // El segundo DNI suele ser el del familiar
+            data.dniFamiliar = dniMatches[1];
+          }
         }
 
         // Capturar detalles adicionales
@@ -94,12 +125,18 @@ class EjzagetroScraper {
 
       resultado.dni = dni;
 
-      // Formatear nombre si existe
+      // Formatear nombres si existen
       if (resultado.nombrePersona) {
         resultado.nombrePersona = formatearNombre(resultado.nombrePersona);
       }
+      if (resultado.nombreFamiliar) {
+        resultado.nombreFamiliar = formatearNombre(resultado.nombreFamiliar);
+      }
 
-      console.log(`[EJZAGETRO] DNI ${dni} - Parentesco: ${resultado.parentesco || 'No detectado'} - Familiar: ${resultado.esFamiliar ? 'SÍ' : 'NO'}`);
+      console.log(`[EJZAGETRO] DNI ${dni} - Nombre: ${resultado.nombrePersona || 'No detectado'} - Parentesco: ${resultado.parentesco || 'No detectado'} - Familiar: ${resultado.esFamiliar ? 'SÍ' : 'NO'}`);
+      if (resultado.esFamiliar && resultado.nombreFamiliar) {
+        console.log(`[EJZAGETRO]    └─ Familiar: ${resultado.nombreFamiliar} (${resultado.dniFamiliar || 'DNI no detectado'})`);
+      }
 
       await context.close();
       await browser.close();

@@ -1,5 +1,6 @@
 const express = require('express');
 const FiltroService = require('../services/filtroService');
+const ComparacionDNIService = require('../services/comparacionDNIService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,11 +9,25 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS - Permitir requests desde Vercel
+// CORS - Permitir requests desde Vercel y localhost
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
+  const allowedOrigins = [
+    'https://sistema-de-filtro.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
+
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (!origin) {
+    // Permitir requests sin origin (como curl o Postman)
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -24,8 +39,9 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(express.static('public'));
 }
 
-// Instancia del servicio
+// Instancia de los servicios
 const filtroService = new FiltroService();
+const comparacionDNIService = new ComparacionDNIService();
 
 /**
  * Endpoint principal: Filtrar un RUC
@@ -156,6 +172,81 @@ app.post('/api/validar-dni', async (req, res) => {
 });
 
 /**
+ * Endpoint: Comparar múltiples DNIs y detectar vínculos familiares
+ */
+app.post('/api/comparar-dnis', async (req, res) => {
+  try {
+    const { dnis } = req.body;
+
+    // Validar que se envió el campo dnis
+    if (!dnis) {
+      return res.status(400).json({
+        success: false,
+        error: 'El campo dnis es requerido'
+      });
+    }
+
+    // Validar que sea un array
+    if (!Array.isArray(dnis)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El campo dnis debe ser un array'
+      });
+    }
+
+    // Validar que no esté vacío
+    if (dnis.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Debe proporcionar al menos un DNI'
+      });
+    }
+
+    // Validar que haya al menos 2 DNIs para comparar
+    if (dnis.length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'Debe proporcionar al menos 2 DNIs para comparar'
+      });
+    }
+
+    // Validar formato de cada DNI (8 dígitos)
+    const dnisInvalidos = dnis.filter(dni => !/^\d{8}$/.test(dni));
+    if (dnisInvalidos.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Algunos DNIs tienen formato inválido (deben ser 8 dígitos)',
+        dnisInvalidos
+      });
+    }
+
+    // Eliminar duplicados
+    const dnisUnicos = [...new Set(dnis)];
+    if (dnisUnicos.length !== dnis.length) {
+      console.log(`⚠️  Se eliminaron ${dnis.length - dnisUnicos.length} DNI(s) duplicado(s)`);
+    }
+
+    // Procesar comparación
+    const resultado = await comparacionDNIService.compararDNIs(dnisUnicos);
+    const reporte = comparacionDNIService.generarReporte(resultado);
+
+    res.json({
+      success: true,
+      reporte,
+      detalles: resultado
+    });
+
+  } catch (error) {
+    console.error('Error en /api/comparar-dnis:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error interno del servidor',
+      mensaje: error.message
+    });
+  }
+});
+
+/**
  * Endpoint: Health check
  */
 app.get('/api/health', (req, res) => {
@@ -210,6 +301,12 @@ app.get('/', (req, res) => {
       </div>
 
       <div class="endpoint">
+        <h3>POST /api/comparar-dnis</h3>
+        <p>Compara múltiples DNIs y detecta vínculos familiares</p>
+        <p><strong>Body:</strong> <code>{ "dnis": ["12345678", "87654321", "11223344"] }</code></p>
+      </div>
+
+      <div class="endpoint">
         <h3>GET /api/health</h3>
         <p>Verifica el estado del servicio</p>
       </div>
@@ -227,6 +324,7 @@ app.listen(PORT, () => {
   console.log(`  POST /api/filtrar-ruc`);
   console.log(`  POST /api/filtrar-rucs-batch`);
   console.log(`  POST /api/validar-dni`);
+  console.log(`  POST /api/comparar-dnis`);
   console.log(`  GET  /api/health\n`);
 });
 
