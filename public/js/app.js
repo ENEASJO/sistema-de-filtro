@@ -1077,17 +1077,28 @@ function inicializarOCRGeneral() {
                 }
             }
 
-            // Auto-agregar RUCs al textarea de "Búsqueda Masiva"
+            // Auto-agregar RUCs según cantidad:
+            // - Si es 1 RUC → campo "RUC Individual"
+            // - Si son 2+ RUCs → textarea "Búsqueda Masiva"
             if (rucsUnicos.length > 0) {
-                const rucsInput = document.getElementById('rucs-input');
-                if (rucsInput) {
-                    const rucsActuales = rucsInput.value.trim();
-                    const nuevosRucs = rucsUnicos.join('\n');
+                if (rucsUnicos.length === 1) {
+                    // Un solo RUC → enviarlo a "RUC Individual"
+                    const rucInput = document.getElementById('ruc-input');
+                    if (rucInput) {
+                        rucInput.value = rucsUnicos[0];
+                    }
+                } else {
+                    // Múltiples RUCs → enviarlo a "Búsqueda Masiva"
+                    const rucsInput = document.getElementById('rucs-input');
+                    if (rucsInput) {
+                        const rucsActuales = rucsInput.value.trim();
+                        const nuevosRucs = rucsUnicos.join('\n');
 
-                    if (rucsActuales) {
-                        rucsInput.value = rucsActuales + '\n' + nuevosRucs;
-                    } else {
-                        rucsInput.value = nuevosRucs;
+                        if (rucsActuales) {
+                            rucsInput.value = rucsActuales + '\n' + nuevosRucs;
+                        } else {
+                            rucsInput.value = nuevosRucs;
+                        }
                     }
                 }
             }
