@@ -1113,9 +1113,21 @@ function inicializarOCRGeneral() {
     });
 }
 
-// Inicializar OCR General cuando el DOM esté listo
+// Inicializar OCR General Mejorado cuando el DOM esté listo
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarOCRGeneral);
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof window.inicializarOCRGeneralMejorado === 'function') {
+            window.inicializarOCRGeneralMejorado();
+        } else {
+            console.warn('OCR mejorado no disponible, usando versión estándar');
+            inicializarOCRGeneral();
+        }
+    });
 } else {
-    inicializarOCRGeneral();
+    if (typeof window.inicializarOCRGeneralMejorado === 'function') {
+        window.inicializarOCRGeneralMejorado();
+    } else {
+        console.warn('OCR mejorado no disponible, usando versión estándar');
+        inicializarOCRGeneral();
+    }
 }
