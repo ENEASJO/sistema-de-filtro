@@ -932,16 +932,22 @@ async function extraerNumerosDesdeImagen(file) {
                 const dnis = text.match(dniRegex) || [];
                 const rucs = text.match(rucRegex) || [];
 
-                // Filtrar RUCs válidos (que empiecen con 10, 15, 17, 20)
+                // Filtrar RUCs válidos por prefijo:
+                // 10 = Persona Natural
+                // 15 = Persona Natural No Domiciliada
+                // 17 = Persona Natural con Negocio
+                // 20 = Persona Jurídica (Empresas)
                 const rucsValidos = rucs.filter(ruc => {
                     const prefijo = ruc.substring(0, 2);
                     return ['10', '15', '17', '20'].includes(prefijo);
                 });
 
-                // Extraer DNIs de RUCs tipo 10 (10 + DNI + dígito verificador)
+                // Extraer DNIs de RUCs tipo 10 (Persona Natural)
+                // Estructura: 10 + DNI (8 dígitos) + dígito verificador
+                // Ejemplo: 10442273818 → DNI: 44227381
                 const dnisDeRUCs10 = rucsValidos
                     .filter(ruc => ruc.startsWith('10'))
-                    .map(ruc => ruc.substring(2, 10)); // Extraer 8 dígitos del medio
+                    .map(ruc => ruc.substring(2, 10)); // Extraer los 8 dígitos del DNI
 
                 // Combinar DNIs directos con DNIs extraídos de RUCs tipo 10
                 const todosDNIs = [...dnis, ...dnisDeRUCs10];
