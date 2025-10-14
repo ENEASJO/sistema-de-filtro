@@ -90,6 +90,34 @@
                     Ingrese múltiples DNIs para verificar si existen vínculos familiares entre ellos.
                     <strong>No se realiza scraping</strong>, solo se comparan los DNIs ingresados.
                 </p>
+
+                <!-- OCR Image Upload Section -->
+                <div class="ocr-section" style="margin-bottom: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 2px dashed var(--border-color);">
+                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--text-primary);">📷 Extraer DNIs desde Imagen (OCR)</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.85rem;">
+                        Suba una imagen que contenga DNIs y se extraerán automáticamente.
+                    </p>
+                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <button type="button" id="upload-image-btn" class="btn btn-secondary" style="width: 100%;">
+                        📤 Subir Imagen para Extraer DNIs
+                    </button>
+
+                    <!-- Image Preview -->
+                    <div id="preview-container" style="display: none; margin-top: 15px;">
+                        <img id="image-preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border-color);" alt="Vista previa">
+                    </div>
+
+                    <!-- OCR Progress -->
+                    <div id="ocr-loader" style="display: none; margin-top: 15px; text-align: center;">
+                        <div style="margin-bottom: 10px;">
+                            <div style="width: 100%; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+                                <div id="ocr-progress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <p id="ocr-progress-text" style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Procesando imagen...</p>
+                    </div>
+                </div>
+
                 <form id="form-comparar">
                     <div class="input-group-vertical">
                         <label for="dnis-input">Ingrese DNIs (uno por línea, mínimo 2 DNIs)</label>
