@@ -932,29 +932,39 @@ async function extraerNumerosDesdeImagen(file) {
                 const dnis = text.match(dniRegex) || [];
                 const rucs = text.match(rucRegex) || [];
 
-                // Filtrar RUCs válidos por prefijo:
+                // Clasificar RUCs por tipo:
                 // 10 = Persona Natural
                 // 15 = Persona Natural No Domiciliada
                 // 17 = Persona Natural con Negocio
                 // 20 = Persona Jurídica (Empresas)
-                const rucsValidos = rucs.filter(ruc => {
+                const todosLosRUCs = rucs.filter(ruc => {
                     const prefijo = ruc.substring(0, 2);
                     return ['10', '15', '17', '20'].includes(prefijo);
                 });
 
-                // Extraer DNIs de RUCs tipo 10 (Persona Natural)
-                // Estructura: 10 + DNI (8 dígitos) + dígito verificador
+                // Separar RUCs de Personas Naturales (10, 15, 17) vs Personas Jurídicas (20)
+                const rucsPersonasNaturales = todosLosRUCs.filter(ruc => {
+                    const prefijo = ruc.substring(0, 2);
+                    return ['10', '15', '17'].includes(prefijo);
+                });
+
+                const rucsPersonasJuridicas = todosLosRUCs.filter(ruc =>
+                    ruc.startsWith('20')
+                );
+
+                // Extraer DNIs de RUCs de Personas Naturales
+                // Estructura tipo 10: 10 + DNI (8 dígitos) + dígito verificador
                 // Ejemplo: 10442273818 → DNI: 44227381
-                const dnisDeRUCs10 = rucsValidos
-                    .filter(ruc => ruc.startsWith('10'))
+                const dnisDeRUCsNaturales = rucsPersonasNaturales
+                    .filter(ruc => ruc.startsWith('10')) // Solo tipo 10 tiene DNI extraíble
                     .map(ruc => ruc.substring(2, 10)); // Extraer los 8 dígitos del DNI
 
                 // Combinar DNIs directos con DNIs extraídos de RUCs tipo 10
-                const todosDNIs = [...dnis, ...dnisDeRUCs10];
+                const todosDNIs = [...dnis, ...dnisDeRUCsNaturales];
 
                 resolve({
                     dnis: [...new Set(todosDNIs)],
-                    rucs: [...new Set(rucsValidos)]
+                    rucs: [...new Set(rucsPersonasJuridicas)] // SOLO RUCs tipo 20 (empresas)
                 });
             } catch (error) {
                 reject(error);
