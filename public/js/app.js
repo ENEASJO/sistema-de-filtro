@@ -938,8 +938,16 @@ async function extraerNumerosDesdeImagen(file) {
                     return ['10', '15', '17', '20'].includes(prefijo);
                 });
 
+                // Extraer DNIs de RUCs tipo 10 (10 + DNI + dígito verificador)
+                const dnisDeRUCs10 = rucsValidos
+                    .filter(ruc => ruc.startsWith('10'))
+                    .map(ruc => ruc.substring(2, 10)); // Extraer 8 dígitos del medio
+
+                // Combinar DNIs directos con DNIs extraídos de RUCs tipo 10
+                const todosDNIs = [...dnis, ...dnisDeRUCs10];
+
                 resolve({
-                    dnis: [...new Set(dnis)],
+                    dnis: [...new Set(todosDNIs)],
                     rucs: [...new Set(rucsValidos)]
                 });
             } catch (error) {
