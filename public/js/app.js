@@ -900,3 +900,187 @@ if (document.readyState === 'loading') {
 } else {
     inicializarOCR();
 }
+
+// ===== OCR GENERAL - EXTRACCIÓN DE DNIs Y RUCs =====
+async function extraerNumerosDesdeImagen(file) {
+    return new Promise((resolve, reject) => {
+        // Cargar Tesseract desde CDN si no está cargado
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.onload = async () => {
+            try {
+                const { createWorker } = Tesseract;
+                const worker = await createWorker('spa', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const percent = Math.round(m.progress * 100);
+                            const progress = document.getElementById('ocr-progress-general');
+                            const progressText = document.getElementById('ocr-progress-text-general');
+                            if (progress) progress.style.width = `${percent}%`;
+                            if (progressText) progressText.textContent = `Procesando imagen: ${percent}%`;
+                        }
+                    }
+                });
+
+                const { data: { text } } = await worker.recognize(file);
+                await worker.terminate();
+
+                // Extraer DNIs (8 dígitos) y RUCs (11 dígitos)
+                const dniRegex = /\b\d{8}\b/g;
+                const rucRegex = /\b\d{11}\b/g;
+
+                const dnis = text.match(dniRegex) || [];
+                const rucs = text.match(rucRegex) || [];
+
+                // Filtrar RUCs válidos (que empiecen con 10, 15, 17, 20)
+                const rucsValidos = rucs.filter(ruc => {
+                    const prefijo = ruc.substring(0, 2);
+                    return ['10', '15', '17', '20'].includes(prefijo);
+                });
+
+                resolve({
+                    dnis: [...new Set(dnis)],
+                    rucs: [...new Set(rucsValidos)]
+                });
+            } catch (error) {
+                reject(error);
+            }
+        };
+        script.onerror = () => {
+            reject(new Error('Error al cargar Tesseract.js'));
+        };
+        document.head.appendChild(script);
+    });
+}
+
+function inicializarOCRGeneral() {
+    const uploadBtn = document.getElementById('upload-image-btn-general');
+    const fileInput = document.getElementById('image-input-general');
+    const previewGrid = document.getElementById('preview-grid-general');
+    const previewContainer = document.getElementById('preview-container-general');
+    const loader = document.getElementById('ocr-loader-general');
+    const resultsSummary = document.getElementById('ocr-results-summary');
+    const dnisCountEl = document.getElementById('dnis-count');
+    const rucsCountEl = document.getElementById('rucs-count');
+
+    if (!uploadBtn || !fileInput) return;
+
+    uploadBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        // Validar que todas sean imágenes
+        const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidFiles.length > 0) {
+            showAlert('error', 'Por favor seleccione solo archivos de imagen válidos (JPG, PNG, etc.)');
+            return;
+        }
+
+        // Limpiar preview anterior
+        if (previewGrid) previewGrid.innerHTML = '';
+        if (resultsSummary) resultsSummary.style.display = 'none';
+
+        // Mostrar preview de todas las imágenes
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.style.cssText = 'position: relative; border: 2px solid rgba(255,255,255,0.5); border-radius: 8px; overflow: hidden;';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width: 100%; height: 150px; object-fit: cover;';
+
+                imgContainer.appendChild(img);
+                if (previewGrid) previewGrid.appendChild(imgContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        if (previewContainer) previewContainer.style.display = 'block';
+        if (loader) loader.style.display = 'block';
+
+        try {
+            showAlert('info', `Procesando ${files.length} imagen(es)... Detectando DNIs y RUCs automáticamente`);
+
+            const todosDNIs = [];
+            const todosRUCs = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const progressText = document.getElementById('ocr-progress-text-general');
+                if (progressText) {
+                    progressText.textContent = `Procesando imagen ${i + 1} de ${files.length}...`;
+                }
+
+                const { dnis, rucs } = await extraerNumerosDesdeImagen(file);
+                todosDNIs.push(...dnis);
+                todosRUCs.push(...rucs);
+            }
+
+            // Eliminar duplicados
+            const dnisUnicos = [...new Set(todosDNIs)];
+            const rucsUnicos = [...new Set(todosRUCs)];
+
+            if (loader) loader.style.display = 'none';
+
+            if (dnisUnicos.length === 0 && rucsUnicos.length === 0) {
+                showAlert('error', 'No se encontraron DNIs ni RUCs en las imágenes. Asegúrese de que las imágenes sean claras.');
+                return;
+            }
+
+            // Actualizar contadores
+            if (dnisCountEl) dnisCountEl.textContent = dnisUnicos.length;
+            if (rucsCountEl) rucsCountEl.textContent = rucsUnicos.length;
+            if (resultsSummary) resultsSummary.style.display = 'block';
+
+            // Auto-agregar DNIs al textarea de "Comparar DNIs"
+            if (dnisUnicos.length > 0) {
+                const dnisInput = document.getElementById('dnis-input');
+                if (dnisInput) {
+                    const dniActuales = dnisInput.value.trim();
+                    const nuevosDnis = dnisUnicos.join('\n');
+
+                    if (dniActuales) {
+                        dnisInput.value = dniActuales + '\n' + nuevosDnis;
+                    } else {
+                        dnisInput.value = nuevosDnis;
+                    }
+                }
+            }
+
+            // Auto-agregar RUCs al textarea de "Búsqueda Masiva"
+            if (rucsUnicos.length > 0) {
+                const rucsInput = document.getElementById('rucs-input');
+                if (rucsInput) {
+                    const rucsActuales = rucsInput.value.trim();
+                    const nuevosRucs = rucsUnicos.join('\n');
+
+                    if (rucsActuales) {
+                        rucsInput.value = rucsActuales + '\n' + nuevosRucs;
+                    } else {
+                        rucsInput.value = nuevosRucs;
+                    }
+                }
+            }
+
+            showAlert('success', `✅ Extraídos: ${dnisUnicos.length} DNI(s) y ${rucsUnicos.length} RUC(s) de ${files.length} imagen(es)`);
+
+        } catch (error) {
+            console.error('Error OCR:', error);
+            if (loader) loader.style.display = 'none';
+            showAlert('error', `Error al procesar las imágenes: ${error.message}`);
+        }
+    });
+}
+
+// Inicializar OCR General cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarOCRGeneral);
+} else {
+    inicializarOCRGeneral();
+}

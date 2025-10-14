@@ -20,6 +20,48 @@
             <p class="subtitle">Validación de RUCs y Detección de Familiares</p>
         </header>
 
+        <!-- OCR General Section -->
+        <div class="ocr-general-section" style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+            <h2 style="margin: 0 0 10px 0; color: white; font-size: 1.3rem;">📷 Extracción Automática OCR</h2>
+            <p style="color: rgba(255,255,255,0.9); margin-bottom: 15px; font-size: 0.9rem;">
+                Suba imágenes que contengan DNIs o RUCs. El sistema detectará y clasificará automáticamente cada número.
+            </p>
+
+            <input type="file" id="image-input-general" accept="image/*" multiple style="display: none;">
+            <button type="button" id="upload-image-btn-general" class="btn" style="width: 100%; background: white; color: #667eea; font-weight: 600; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                📤 Subir Imágenes para Extraer DNIs y RUCs
+            </button>
+
+            <!-- Image Preview -->
+            <div id="preview-container-general" style="display: none; margin-top: 15px;">
+                <div id="preview-grid-general" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;"></div>
+            </div>
+
+            <!-- OCR Progress -->
+            <div id="ocr-loader-general" style="display: none; margin-top: 15px; text-align: center;">
+                <div style="margin-bottom: 10px;">
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden;">
+                        <div id="ocr-progress-general" style="width: 0%; height: 100%; background: white; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+                <p id="ocr-progress-text-general" style="color: white; font-size: 0.9rem; margin: 0;">Procesando imagen...</p>
+            </div>
+
+            <!-- Results Summary -->
+            <div id="ocr-results-summary" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.95); border-radius: 8px; color: #1e293b;">
+                <div style="display: flex; justify-content: space-around; text-align: center;">
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;" id="dnis-count">0</div>
+                        <div style="font-size: 0.85rem; color: #64748b;">DNIs Extraídos</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;" id="rucs-count">0</div>
+                        <div style="font-size: 0.85rem; color: #64748b;">RUCs Extraídos</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="individual">RUC Individual</button>
@@ -90,33 +132,6 @@
                     Ingrese múltiples DNIs para verificar si existen vínculos familiares entre ellos.
                     <strong>No se realiza scraping</strong>, solo se comparan los DNIs ingresados.
                 </p>
-
-                <!-- OCR Image Upload Section -->
-                <div class="ocr-section" style="margin-bottom: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 2px dashed var(--border-color);">
-                    <h3 style="margin-top: 0; font-size: 1rem; color: var(--text-primary);">📷 Extraer DNIs desde Imagen (OCR)</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.85rem;">
-                        Suba una imagen que contenga DNIs y se extraerán automáticamente.
-                    </p>
-                    <input type="file" id="image-input" accept="image/*" multiple style="display: none;">
-                    <button type="button" id="upload-image-btn" class="btn btn-secondary" style="width: 100%;">
-                        📤 Subir Imágenes para Extraer DNIs
-                    </button>
-
-                    <!-- Image Preview -->
-                    <div id="preview-container" style="display: none; margin-top: 15px;">
-                        <div id="preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;"></div>
-                    </div>
-
-                    <!-- OCR Progress -->
-                    <div id="ocr-loader" style="display: none; margin-top: 15px; text-align: center;">
-                        <div style="margin-bottom: 10px;">
-                            <div style="width: 100%; height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
-                                <div id="ocr-progress" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s;"></div>
-                            </div>
-                        </div>
-                        <p id="ocr-progress-text" style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">Procesando imagen...</p>
-                    </div>
-                </div>
 
                 <form id="form-comparar">
                     <div class="input-group-vertical">
