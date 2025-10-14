@@ -97,14 +97,14 @@
                     <p style="color: var(--text-secondary); margin-bottom: 15px; font-size: 0.85rem;">
                         Suba una imagen que contenga DNIs y se extraerán automáticamente.
                     </p>
-                    <input type="file" id="image-input" accept="image/*" style="display: none;">
+                    <input type="file" id="image-input" accept="image/*" multiple style="display: none;">
                     <button type="button" id="upload-image-btn" class="btn btn-secondary" style="width: 100%;">
-                        📤 Subir Imagen para Extraer DNIs
+                        📤 Subir Imágenes para Extraer DNIs
                     </button>
 
                     <!-- Image Preview -->
                     <div id="preview-container" style="display: none; margin-top: 15px;">
-                        <img id="image-preview" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid var(--border-color);" alt="Vista previa">
+                        <div id="preview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px;"></div>
                     </div>
 
                     <!-- OCR Progress -->

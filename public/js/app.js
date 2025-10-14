@@ -807,7 +807,7 @@ async function extraerDNIsDesdeImagen(file) {
 function inicializarOCR() {
     const uploadBtn = document.getElementById('upload-image-btn');
     const fileInput = document.getElementById('image-input');
-    const preview = document.getElementById('image-preview');
+    const previewGrid = document.getElementById('preview-grid');
     const previewContainer = document.getElementById('preview-container');
     const dnisInput = document.getElementById('dnis-input');
 
@@ -818,35 +818,66 @@ function inicializarOCR() {
     });
 
     fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
 
-        // Validar que sea una imagen
-        if (!file.type.startsWith('image/')) {
-            showAlert('error', 'Por favor seleccione un archivo de imagen válido (JPG, PNG, etc.)');
+        // Validar que todas sean imágenes
+        const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+        if (invalidFiles.length > 0) {
+            showAlert('error', 'Por favor seleccione solo archivos de imagen válidos (JPG, PNG, etc.)');
             return;
         }
 
-        // Mostrar preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (preview) preview.src = e.target.result;
-            if (previewContainer) previewContainer.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+        // Limpiar preview anterior
+        if (previewGrid) previewGrid.innerHTML = '';
+
+        // Mostrar preview de todas las imágenes
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.style.cssText = 'position: relative; border: 2px solid var(--border-color); border-radius: 8px; overflow: hidden;';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width: 100%; height: 150px; object-fit: cover;';
+
+                imgContainer.appendChild(img);
+                if (previewGrid) previewGrid.appendChild(imgContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        if (previewContainer) previewContainer.style.display = 'block';
 
         try {
-            showAlert('info', 'Procesando imagen... Esto puede tomar unos segundos');
-            const dnis = await extraerDNIsDesdeImagen(file);
+            showAlert('info', `Procesando ${files.length} imagen(es)... Esto puede tomar unos segundos`);
 
-            if (dnis.length === 0) {
-                showAlert('error', 'No se encontraron DNIs en la imagen. Asegúrese de que la imagen sea clara y contenga números de 8 dígitos.');
+            // Procesar cada imagen y combinar DNIs
+            const todosLosDnis = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const progressText = document.getElementById('ocr-progress-text');
+                if (progressText) {
+                    progressText.textContent = `Procesando imagen ${i + 1} de ${files.length}...`;
+                }
+
+                const dnis = await extraerDNIsDesdeImagen(file);
+                todosLosDnis.push(...dnis);
+            }
+
+            // Eliminar duplicados de todos los DNIs extraídos
+            const dnisUnicos = [...new Set(todosLosDnis)];
+
+            if (dnisUnicos.length === 0) {
+                showAlert('error', 'No se encontraron DNIs en las imágenes. Asegúrese de que las imágenes sean claras y contengan números de 8 dígitos.');
                 return;
             }
 
             // Agregar DNIs al textarea (uno por línea)
             const dniActuales = dnisInput.value.trim();
-            const nuevosDnis = dnis.join('\n');
+            const nuevosDnis = dnisUnicos.join('\n');
 
             if (dniActuales) {
                 dnisInput.value = dniActuales + '\n' + nuevosDnis;
@@ -854,11 +885,11 @@ function inicializarOCR() {
                 dnisInput.value = nuevosDnis;
             }
 
-            showAlert('success', `✅ Se extrajeron ${dnis.length} DNI(s) de la imagen`);
+            showAlert('success', `✅ Se extrajeron ${dnisUnicos.length} DNI(s) únicos de ${files.length} imagen(es)`);
 
         } catch (error) {
             console.error('Error OCR:', error);
-            showAlert('error', `Error al procesar la imagen: ${error.message}`);
+            showAlert('error', `Error al procesar las imágenes: ${error.message}`);
         }
     });
 }
