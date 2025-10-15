@@ -426,6 +426,58 @@ function inicializarOCRGeneralMejorado() {
         procesarImagenes(files);
     });
 
+    // Paste (Ctrl+V / Cmd+V) - Pegar imágenes desde portapapeles
+    document.addEventListener('paste', async (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        const imageFiles = [];
+
+        // Recorrer items del portapapeles
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+
+            // Si es una imagen
+            if (item.type.startsWith('image/')) {
+                e.preventDefault(); // Prevenir pegado por defecto
+
+                const blob = item.getAsFile();
+                if (blob) {
+                    // Convertir Blob a File con nombre
+                    const file = new File([blob], `pasted-image-${Date.now()}.png`, {
+                        type: blob.type,
+                        lastModified: Date.now()
+                    });
+                    imageFiles.push(file);
+                }
+            }
+        }
+
+        // Si se encontraron imágenes, procesarlas
+        if (imageFiles.length > 0) {
+            showAlert('info', '📋 Imagen pegada desde portapapeles. Procesando...');
+            procesarImagenes(imageFiles);
+        }
+    });
+
+    // Indicador visual para pegar (opcional - agregar hint)
+    if (dropZone) {
+        const pasteHint = document.createElement('div');
+        pasteHint.style.cssText = `
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            margin-top: 8px;
+            font-style: italic;
+        `;
+        pasteHint.innerHTML = '💡 Tip: También puedes <strong>arrastrar</strong> o <strong>pegar (Ctrl+V)</strong> imágenes';
+
+        const btnContainer = dropZone.querySelector('button')?.parentElement;
+        if (btnContainer) {
+            btnContainer.appendChild(pasteHint);
+        }
+    }
+
     // Función de procesamiento
     async function procesarImagenes(files) {
         if (files.length === 0) return;
