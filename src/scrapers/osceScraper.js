@@ -210,6 +210,65 @@ class OsceScraper {
           }
         }
 
+        // Función auxiliar: Validar si un texto parece ser un nombre de persona
+        const esNombrePersonaValido = (nombre) => {
+          if (!nombre || nombre.length < 5) return false;
+
+          const nombreUpper = nombre.toUpperCase();
+
+          // Lista de términos que NO son nombres de personas
+          const terminosInvalidos = [
+            'CONFORMACIÓN SOCIETARIA',
+            'CONFORMACION SOCIETARIA',
+            'JUNTA GENERAL',
+            'DIRECTORIO',
+            'SOCIOS',
+            'GERENTE GENERAL',
+            'REPRESENTANTE LEGAL',
+            'ACCIONISTA',
+            'ADMINISTRADOR',
+            'TITULAR',
+            'PROPIETARIO',
+            'PRESIDENTE',
+            'VICEPRESIDENTE',
+            'SECRETARIO',
+            'TESORERO',
+            'VOCAL',
+            'SUPLENTE',
+            'CONSEJO',
+            'SOCIEDAD',
+            'EMPRESA',
+            'COMPAÑIA',
+            'CORPORACION',
+            'ASOCIACION',
+            'FUNDACION',
+            'INSTITUCION',
+            'ORGANIZACION'
+          ];
+
+          // Verificar si contiene algún término inválido
+          for (const termino of terminosInvalidos) {
+            if (nombreUpper.includes(termino)) {
+              return false;
+            }
+          }
+
+          // Un nombre válido debe tener al menos 2 palabras (apellido y nombre)
+          const palabras = nombreUpper.split(/\s+/).filter(p => p.length > 0);
+          if (palabras.length < 2) {
+            return false;
+          }
+
+          // Verificar que contenga principalmente letras
+          const soloLetras = nombreUpper.replace(/[^A-ZÁÉÍÓÚÑ]/g, '');
+          const proporcionLetras = soloLetras.length / nombreUpper.length;
+          if (proporcionLetras < 0.7) {
+            return false;
+          }
+
+          return true;
+        };
+
         // Convertir Map a array y limpiar nombres
         dnisEncontrados.forEach((data) => {
           let nombreLimpio = data.nombre || '';
@@ -220,8 +279,8 @@ class OsceScraper {
             .replace(/[^\w\sÁÉÍÓÚÑáéíóúñ]/g, ' ')  // Quitar caracteres especiales
             .trim();
 
-          // Si el nombre tiene menos de 5 caracteres, no es válido
-          if (nombreLimpio.length < 5) {
+          // Validar si el nombre parece ser de una persona real
+          if (!esNombrePersonaValido(nombreLimpio)) {
             nombreLimpio = '';
           }
 

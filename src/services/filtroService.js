@@ -100,10 +100,18 @@ class FiltroService {
         if (!resultado.razonSocial) {
           resultado.razonSocial = datosOsce.value.razonSocial;
         }
-        // Agregar DNIs únicos
+        // IMPORTANTE: Solo agregar DNIs de OSCE que también estén en SUNAT, o si SUNAT no encontró ninguno
+        // Esto previene que OSCE agregue DNIs espurios o mal asociados
+        const sunatTieneDNIs = resultado.dnisTotales.length > 0;
+
         datosOsce.value.dnis.forEach(dni => {
           if (!resultado.dnisTotales.includes(dni)) {
-            resultado.dnisTotales.push(dni);
+            // Solo agregar si SUNAT no encontró ningún DNI (usar OSCE como respaldo)
+            if (!sunatTieneDNIs) {
+              resultado.dnisTotales.push(dni);
+            } else {
+              console.log(`[FILTRO] DNI ${dni} de OSCE ignorado - no está en SUNAT`);
+            }
           }
         });
       } else {
@@ -138,6 +146,11 @@ class FiltroService {
       // Agregar DNIs de OSCE con nombres
       if (resultado.detallesOsce && resultado.detallesOsce.representantes) {
         resultado.detallesOsce.representantes.forEach(rep => {
+          // IMPORTANTE: Solo procesar DNIs que están en dnisTotales (fueron aprobados)
+          if (!resultado.dnisTotales.includes(rep.dni)) {
+            return; // Ignorar este DNI, no fue aprobado para procesar
+          }
+
           if (personasMap.has(rep.dni)) {
             personasMap.get(rep.dni).fuentes.push('OSCE');
             // Si OSCE tiene nombre y SUNAT no, usar el de OSCE
