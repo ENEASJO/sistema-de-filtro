@@ -169,6 +169,12 @@ class FiltroService {
           persona.esFamiliar = validacion.esFamiliar;
           persona.encontrado = validacion.encontrado;
           persona.nombrePersona = validacion.nombrePersona;
+
+          // IMPORTANTE: Usar el nombre de ejzagetro como fuente autoritativa
+          // Sobreescribir el nombre de SUNAT/OSCE con el nombre correcto de ejzagetro
+          if (validacion.encontrado && validacion.nombrePersona) {
+            persona.nombre = validacion.nombrePersona;
+          }
         }
 
         if (validacion.esFamiliar) {
