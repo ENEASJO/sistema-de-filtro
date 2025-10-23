@@ -5,6 +5,24 @@ const ComparacionDNIService = require('../services/comparacionDNIService');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configuración de timeouts para Railway/producción
+// Railway tiene timeout de 300 segundos, pero lo configuramos más conservador
+const REQUEST_TIMEOUT = process.env.REQUEST_TIMEOUT || 240000; // 4 minutos
+const MAX_RUCS_PER_BATCH = process.env.MAX_RUCS_PER_BATCH || 3; // Máximo 3 RUCs por batch
+
+// Middleware para timeout y keep-alive
+app.use((req, res, next) => {
+  // Configurar timeout de request
+  req.setTimeout(REQUEST_TIMEOUT);
+  res.setTimeout(REQUEST_TIMEOUT);
+
+  // Configurar keep-alive para mantener conexión abierta
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Keep-Alive', 'timeout=300');
+
+  next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -103,6 +121,15 @@ app.post('/api/filtrar-rucs-batch', async (req, res) => {
       });
     }
 
+    // IMPORTANTE: Limitar cantidad de RUCs para evitar timeouts en Railway
+    if (rucs.length > MAX_RUCS_PER_BATCH) {
+      return res.status(400).json({
+        success: false,
+        error: `Por limitaciones de tiempo, solo se pueden procesar máximo ${MAX_RUCS_PER_BATCH} RUCs por vez. Recibiste ${rucs.length}.`,
+        sugerencia: `Divide tu lista en grupos de ${MAX_RUCS_PER_BATCH} RUCs`
+      });
+    }
+
     // Validar formato de cada RUC
     const rucsInvalidos = rucs.filter(ruc => !/^\d{11}$/.test(ruc));
     if (rucsInvalidos.length > 0) {
@@ -113,7 +140,14 @@ app.post('/api/filtrar-rucs-batch', async (req, res) => {
       });
     }
 
+    console.log(`[BATCH] Procesando ${rucs.length} RUCs...`);
+    const startTime = Date.now();
+
     const resultados = await filtroService.procesarMultiplesRUCs(rucs);
+
+    const endTime = Date.now();
+    const tiempoTotal = ((endTime - startTime) / 1000).toFixed(2);
+    console.log(`[BATCH] Completado en ${tiempoTotal}s`);
     const reporte = filtroService.generarReporte(resultados);
 
     res.json({

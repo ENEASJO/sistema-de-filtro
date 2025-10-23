@@ -178,8 +178,45 @@ sistema-de-filtro/
 ## ⚙️ Variables de Entorno
 
 ```bash
-PORT=3000  # Puerto del servidor (opcional, default: 3000)
+PORT=3000                    # Puerto del servidor
+NODE_ENV=production          # Modo de producción
+REQUEST_TIMEOUT=240000       # Timeout de requests (4 minutos)
+MAX_RUCS_PER_BATCH=3        # Máximo RUCs por batch (Railway: 3)
 ```
+
+## 🚀 Deploy en Railway
+
+### Configuración Requerida
+
+1. **Variables de Entorno** (Railway Dashboard):
+   ```
+   PORT=3000
+   NODE_ENV=production
+   MAX_RUCS_PER_BATCH=3
+   REQUEST_TIMEOUT=240000
+   ```
+
+2. **Build Command**:
+   ```
+   npm install && npx playwright install chromium
+   ```
+
+3. **Start Command**:
+   ```
+   bash start.sh
+   ```
+
+### Limitaciones en Railway (Free Tier)
+
+- ⏱️ **Timeout**: 300 segundos máximo por request
+- 💾 **Memoria**: 512MB RAM (navegadores headless consumen mucho)
+- 📊 **Batch**: Máximo 3 RUCs por vez (configurable con `MAX_RUCS_PER_BATCH`)
+
+### Recomendaciones
+
+- Para más de 3 RUCs, divide en múltiples requests
+- Considera Railway Pro para límites mayores (8GB RAM, sin timeout)
+- Los scrapers con Playwright son pesados, ten paciencia
 
 ## 📝 Notas Importantes
 
