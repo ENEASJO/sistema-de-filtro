@@ -100,18 +100,10 @@ class FiltroService {
         if (!resultado.razonSocial) {
           resultado.razonSocial = datosOsce.value.razonSocial;
         }
-        // IMPORTANTE: Solo agregar DNIs de OSCE que también estén en SUNAT, o si SUNAT no encontró ninguno
-        // Esto previene que OSCE agregue DNIs espurios o mal asociados
-        const sunatTieneDNIs = resultado.dnisTotales.length > 0;
-
+        // Agregar DNIs únicos de OSCE (combinar con SUNAT, sin duplicar)
         datosOsce.value.dnis.forEach(dni => {
           if (!resultado.dnisTotales.includes(dni)) {
-            // Solo agregar si SUNAT no encontró ningún DNI (usar OSCE como respaldo)
-            if (!sunatTieneDNIs) {
-              resultado.dnisTotales.push(dni);
-            } else {
-              console.log(`[FILTRO] DNI ${dni} de OSCE ignorado - no está en SUNAT`);
-            }
+            resultado.dnisTotales.push(dni);
           }
         });
       } else {
@@ -146,18 +138,15 @@ class FiltroService {
       // Agregar DNIs de OSCE con nombres
       if (resultado.detallesOsce && resultado.detallesOsce.representantes) {
         resultado.detallesOsce.representantes.forEach(rep => {
-          // IMPORTANTE: Solo procesar DNIs que están en dnisTotales (fueron aprobados)
-          if (!resultado.dnisTotales.includes(rep.dni)) {
-            return; // Ignorar este DNI, no fue aprobado para procesar
-          }
-
           if (personasMap.has(rep.dni)) {
+            // El DNI ya existe (está en SUNAT), agregar OSCE como fuente adicional
             personasMap.get(rep.dni).fuentes.push('OSCE');
-            // Si OSCE tiene nombre y SUNAT no, usar el de OSCE
-            if (!personasMap.get(rep.dni).nombre && rep.nombre) {
+            // Si OSCE tiene nombre válido y SUNAT no tiene, usar el de OSCE
+            if (!personasMap.get(rep.dni).nombre && rep.nombre && rep.nombre !== 'Nombre no encontrado') {
               personasMap.get(rep.dni).nombre = formatearNombre(rep.nombre);
             }
           } else {
+            // El DNI solo está en OSCE (no en SUNAT)
             personasMap.set(rep.dni, {
               dni: rep.dni,
               nombre: rep.nombre ? formatearNombre(rep.nombre) : rep.nombre,
