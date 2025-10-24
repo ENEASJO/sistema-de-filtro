@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 // Configuración de timeouts para Railway/producción
 // Railway tiene timeout de 300 segundos, pero lo configuramos más conservador
 const REQUEST_TIMEOUT = process.env.REQUEST_TIMEOUT || 240000; // 4 minutos
-const MAX_RUCS_PER_BATCH = process.env.MAX_RUCS_PER_BATCH || 3; // Máximo 3 RUCs por batch
+const MAX_RUCS_PER_BATCH = process.env.MAX_RUCS_PER_BATCH || 5; // Máximo 5 RUCs por batch
 
 // Middleware para timeout y keep-alive
 app.use((req, res, next) => {

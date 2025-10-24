@@ -181,7 +181,7 @@ sistema-de-filtro/
 PORT=3000                    # Puerto del servidor
 NODE_ENV=production          # Modo de producción
 REQUEST_TIMEOUT=240000       # Timeout de requests (4 minutos)
-MAX_RUCS_PER_BATCH=3        # Máximo RUCs por batch (Railway: 3)
+MAX_RUCS_PER_BATCH=5        # Máximo RUCs por batch (Railway: 5)
 ```
 
 ## 🚀 Deploy en Railway
@@ -192,7 +192,7 @@ MAX_RUCS_PER_BATCH=3        # Máximo RUCs por batch (Railway: 3)
    ```
    PORT=3000
    NODE_ENV=production
-   MAX_RUCS_PER_BATCH=3
+   MAX_RUCS_PER_BATCH=5
    REQUEST_TIMEOUT=240000
    ```
 
@@ -210,13 +210,14 @@ MAX_RUCS_PER_BATCH=3        # Máximo RUCs por batch (Railway: 3)
 
 - ⏱️ **Timeout**: 300 segundos máximo por request
 - 💾 **Memoria**: 512MB RAM (navegadores headless consumen mucho)
-- 📊 **Batch**: Máximo 3 RUCs por vez (configurable con `MAX_RUCS_PER_BATCH`)
+- 📊 **Batch**: Máximo 5 RUCs por vez (configurable con `MAX_RUCS_PER_BATCH`)
 
 ### Recomendaciones
 
-- Para más de 3 RUCs, divide en múltiples requests
+- Para más de 5 RUCs, divide en múltiples requests
 - Considera Railway Pro para límites mayores (8GB RAM, sin timeout)
 - Los scrapers con Playwright son pesados, ten paciencia
+- Si experimentas timeouts con 5 RUCs, reduce a 3 en Railway
 
 ## 📝 Notas Importantes
 
