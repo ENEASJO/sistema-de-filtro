@@ -30,13 +30,16 @@ app.use(express.urlencoded({ extended: true }));
 // CORS - Permitir requests desde Vercel y localhost
 app.use((req, res, next) => {
   const allowedOrigins = [
-    'https://sistema-de-filtro.vercel.app',
     'http://localhost:3000',
     'http://127.0.0.1:3000'
   ];
 
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+
+  // Permitir todos los subdominios de vercel.app (producción y preview)
+  const isVercelDomain = origin && origin.match(/^https:\/\/.*\.vercel\.app$/);
+
+  if (allowedOrigins.includes(origin) || isVercelDomain) {
     res.header('Access-Control-Allow-Origin', origin);
   } else if (!origin) {
     // Permitir requests sin origin (como curl o Postman)
